@@ -1,0 +1,82 @@
+#   task 1 and task 2
+#   preprocessing and feature selection
+#   Data mining exercise 8 text mining (CS909)
+#   Name: Chao Xing   Warwick ID No.: 1451365
+#   Thanks to the course work, I got a reason to buy a new laptop XD,
+# 
+#---load package---------------------------------------------------
+library(NLP)
+library(tm)
+library(SnowballC)
+library(topicmodels)
+#------------------------------------------------------------------
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+# task 1 dataset pre-processing     
+# estimated calculation duration 35min 16sec                                 
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+print('delete the useless ROW&COLUMNS')
+reuters <- read.csv("c:/Users/Administrator/Desktop/reutersCSV.csv")
+#========delete the useless ROW & COLUMNS==========================
+vector<-c(0)
+for(i in 4:138){
+  if(sum(reuters[,i]) == 0){
+    vector<-append(vector,i,after = length(vector))
+  }
+}
+vector<-vector[-1]
+reuters<-reuters[,-vector]
+#----------------------------------------------------------------
+vector<-c(0)
+for(i in 1:21578){
+  print(i)
+  if(sum(reuters[i,4:121]) == 0){
+    vector<-append(vector,i,after = length(vector))
+  }
+}
+vector<-vector[-1]
+reuters<-reuters[-vector,]
+#================================================================
+delete1<-which(reuters[,123] == "")
+delete2<-which(reuters$purpose == "not-used")
+reuters.de<-reuters[-c(delete1,delete2),]
+#---transmute into string----------------------------------------
+textLIB<-as.String(reuters.de[,123])
+reuters<- VectorSource(textLIB)
+reuters <- Corpus(reuters)
+#---begin to preprocess------------------------------------------
+# corpus -> plain text document
+reuters <- tm_map(reuters, PlainTextDocument)
+# remove punctuation
+reutersCorpus<-tm_map(reuters, removePunctuation)      
+# remove numbers
+reutersCorpus<-tm_map(reuters, removeNumbers)
+# delete meaningless white space between words
+reuters <- tm_map(reuters, stripWhitespace)
+# high case words -> low case words
+reuters <- tm_map(reuters, tolower)
+# remove stop words
+reuters <- tm_map(reuters, removeWords, stopwords("english"))
+reuters <- as.matrix(reuters)
+#---------------------------------------------------------
+print('That is the end of task 1')
+write.csv(reuters, "reutersprocessed.csv", row.names = F)
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+# task 2 
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+dtm <- DocumentTermMatrix(reuters, control = list(wordLengths = c(3,Inf)))
+dtm <- removeSparseTerms(dtm,sparse=0.95)
+#---LDA feature selection model-------------------------------- 
+reuters.LDA <- LDA(dtm,10, method = "Gibbs")
+terms <- as.vector(terms(reuters.LDA, 50))
+reuters.LDA <- DocumentTermMatrix(reuters,control = list(wordLengths = c(3,Inf),dictionary= terms))
+reuters.LDA.feature <- as.data.frame(inspect(reuters.LDA))
+write.csv(reuters.LDA.feature, "reutersLDAfeature.csv", row.names = F)
+
+#---TF*IDF feature selection model-------------------------------
+reuters.TFIDF <- weightTfIdf(dtm)
+reuters.TFIDF <- removeSparseTerms(reuters.TFIDF,sparse=0.95)
+reuters.TFIDF.feature <- as.data.frame(inspect(reutersTFIDF))
+write.csv(TFIDFf, "reutersTFIDFfeature.csv", row.names = F)
+#-------------------------------------------------------------
+print('That is the end of task 2')
+
